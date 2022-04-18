@@ -19,9 +19,9 @@ module Jekyll::Archive
       @db.get_first_value('SELECT location FROM archives WHERE url=?', url)
     end
 
-    def set_archive_dir(url, dir, date)
+    def add_archive(url, location, date)
       @db.transaction do |db|
-        db.execute('INSERT INTO archives VALUES (?, ?, ?)', url, dir, date)
+        db.execute('INSERT INTO archives VALUES (?, ?, ?)', url, location, date)
       end
     end
   end

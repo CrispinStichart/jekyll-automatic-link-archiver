@@ -4,6 +4,7 @@
 require 'jekyll'
 require 'nokogiri'
 require 'date'
+require 'uri'
 
 require 'link-archiver/database'
 
@@ -25,19 +26,23 @@ module Jekyll::Archive
         href = node['href']
         next unless offsite_link?(href)
 
-        archived_location = @db.get_archive_dir(href)
-        if archived_location
-          insert_archive_link(node, archived_location) if @inline_link
-        else
-          url, download_dir = download_page(href)
-          @db.set_archive_dir(url, download_dir, Time.now.iso8601)
-        end
+        archived_location = archive_or_get_from_db(href)
+        insert_archive_link(node, archived_location, html) if @inline_link
       end
       doc.output = html.to_s
     end
 
-    def insert_archive_link(node, archived_location)
-      archive_link = Nokogiri::XML::Node.new('a', html)
+    def archive_or_get_from_db(url)
+      archived_location = @db.get_archive_dir(url)
+      unless archived_location
+        archived_location = download_page(url)
+        @db.add_archive(url, archived_location, Time.now.iso8601)
+      end
+      archived_location
+    end
+
+    def insert_archive_link(node, archived_location, dom)
+      archive_link = Nokogiri::XML::Node.new('a', dom)
       archive_link.content = 'archive'
       archive_link['class'] = 'archive-link'
       archive_link['href'] = archived_location
@@ -48,13 +53,18 @@ module Jekyll::Archive
 
     # @param url [String]
     def download_page(url)
-      download_dir = ARCHIVES_DIR + url.gsub('\\', '_')
-
-      output = `wget -p --convert-links -nH -nd -P#{download_dir} #{url}`
-      return url, download_dir if $?.exitstatus.zero?
+      # The only invalid character for Unix filenames is a forward slash.
+      # Windows is more restrictive but I don't care enough right now to do
+      # more than the bare minimum.
+      download_dir = ARCHIVES_DIR + url.gsub('/', '_').gsub('\\', '_')
+      `wget -p --convert-links -nH -nd -P#{download_dir} --user-agent="Mozilla" #{url}`
+      location = "#{download_dir}/#{self.class.get_page_filename(url)}"
+      # If any parts of the page fail to dowload, the exit code will be non-zero.
+      # This doesn't necessarily mean that the entire page failed. If something went
+      # super wrong, however, the download dir won't ever be created.
+      return location if File.directory?(download_dir) == true
 
       puts "Failed to download the page at #{url}"
-      puts output
       nil
     end
 
@@ -62,6 +72,15 @@ module Jekyll::Archive
     # @return [Boolean]
     def offsite_link?(link)
       link.start_with?('http')
+    end
+
+    # extracts the filename, or nothing if it's a directory
+    def self.get_page_filename(url)
+      path = URI(url).path
+      first_slash = path.rindex('/')
+      return '' unless first_slash
+
+      path[first_slash + 1..]
     end
 
     def self.html?(doc)
