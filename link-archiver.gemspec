@@ -1,12 +1,12 @@
 Gem::Specification.new do |s|
     s.name        = 'link-archiver'
-    s.version     = '0.0.0'
-    s.summary     = "Says hello"
+    s.version     = '0.0.1'
+    s.summary     = "Archives Links"
     s.description = "Link Archiver"
-    s.authors     = ["Critter"]
-    s.email       = 'critter@critter.critter'
-    s.files       = ["lib/archive.rb"]
+    s.authors     = ["Crispin Stichart"]
+    s.email       = 'CrispinStichart@gmail.com'
+    s.files       = ["lib/link-archiver.rb"]
     s.homepage    =
-      'https://rubygems.org/gems/hello'
+      'https://github.com/CrispinStichart/jekyll-automatic-link-archiver'
     s.license       = 'MIT'
   end

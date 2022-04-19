@@ -1,9 +1,6 @@
 require 'spec_helper'
 require 'fileutils'
 
-ARCHIVE_DATABASE = 'archives.db'
-File.delete(ARCHIVE_DATABASE) if File.exist?(ARCHIVE_DATABASE)
-
 ARCHIVES_DIR = 'archives/'
 FileUtils.remove_dir(ARCHIVES_DIR, force = true)
 
@@ -15,37 +12,19 @@ class Document
   end
 end
 
-RSpec.describe(Jekyll::Archive::Database) do
-  it 'gets nil for a non-archived URL' do
-    db = Jekyll::Archive::Database.new
-    archive_dir = db.get_archive_dir('google.com')
-    expect(archive_dir).to eq(nil)
-  end
-
-  it 'inputs data without error' do
-    db = Jekyll::Archive::Database.new
-    db.add_archive('google.com', 'archives/google.com/', 'today')
-  end
-
-  it 'retrieves data correctly' do
-    db = Jekyll::Archive::Database.new
-    archive_dir = db.get_archive_dir('google.com')
-    expect(archive_dir).to eq('archives/google.com/')
-  end
-end
-
 RSpec.describe(Jekyll::Archive::ArchiveLink) do
   it 'extracts filenames from URLs' do
-    filename = Jekyll::Archive::ArchiveLink.get_page_filename('https://google.com')
+    archiver = Jekyll::Archive::ArchiveLink.new
+    filename = archiver.get_page_filename('https://google.com')
     expect(filename).to eq('')
 
-    filename = Jekyll::Archive::ArchiveLink.get_page_filename('https://google.com/')
+    filename = archiver.get_page_filename('https://google.com/')
     expect(filename).to eq('')
 
-    filename = Jekyll::Archive::ArchiveLink.get_page_filename('https://google.com/test/posts/')
+    filename = archiver.get_page_filename('https://google.com/test/posts/')
     expect(filename).to eq('')
 
-    filename = Jekyll::Archive::ArchiveLink.get_page_filename('https://google.com/test.html')
+    filename = archiver.get_page_filename('https://google.com/test.html')
     expect(filename).to eq('test.html')
   end
 
