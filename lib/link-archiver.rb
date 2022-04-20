@@ -9,17 +9,19 @@ require 'uri'
 module Jekyll::Archive
   # Test Comment to make linter shut up
   class ArchiveLink
-    # NOTE: must have trailing slash
-    ARCHIVES_DIR = 'archives/'
-
-    def initialize
+    def initialize(doc)
       # TODO: read from config
-      @inline_link = true
+      @doc = doc
+      @config = doc.site.config[:link_archiver]
+      @archive_url = @config[:archive_url]
+      @archive_dir = @config[:archive_dir]
+      @inline_link = @config[:inline_link]
+      @exclude_list = @config[:exclude]
     end
 
-    def archive(doc)
+    def archive
       # use doc.site.config to get the config options, which is in hash form.
-      html = Nokogiri::HTML(doc.output)
+      html = Nokogiri::HTML(@doc.output)
       html.css('.post a').each do |node|
         href = node['href']
         next unless offsite_link?(href)
@@ -27,11 +29,11 @@ module Jekyll::Archive
         archived_location = archive_url_or_get_from_cache(href)
         insert_archive_link(node, archived_location, html) if @inline_link
       end
-      doc.output = html.to_s
+      @doc.output = html.to_s
     end
 
     def archive_url_or_get_from_cache(url)
-      archived_location = ARCHIVES_DIR + sanitize_url(url)
+      archived_location = @archive_dir + sanitize_url(url)
       # TODO: refactor this
       archived_location = URI.decode_www_form_component(archived_location)
       archived_location = download_page(url) unless File.directory? archived_location
@@ -42,7 +44,7 @@ module Jekyll::Archive
       archive_link = Nokogiri::XML::Node.new('a', dom)
       archive_link.content = 'archive'
       archive_link['class'] = 'archive-link'
-      archive_link['href'] = archived_location
+      archive_link['href'] = "#{@archive_url}/#{archived_location}"
 
       node.add_next_sibling(archive_link)
       # puts("TEST: #{archive_link}")
@@ -50,7 +52,7 @@ module Jekyll::Archive
 
     # @param url [String]
     def download_page(url)
-      download_dir = ARCHIVES_DIR + sanitize_url(url) + '/'
+      download_dir = @archive_dir + sanitize_url(url) + '/'
       # We're decoding here because jekyll seems to be auto decoding when it
       # moves files into _site/.
       download_dir = URI.decode_www_form_component(download_dir)
@@ -113,5 +115,5 @@ module Jekyll::Archive
 end
 
 Jekyll::Hooks.register [:posts], :post_render do |doc|
-  Jekyll::Archive::ArchiveLink.new.archive(doc) if Jekyll::Archive::ArchiveLink.html?(doc)
+  Jekyll::Archive::ArchiveLink.new(doc).archive if Jekyll::Archive::ArchiveLink.html?(doc)
 end
