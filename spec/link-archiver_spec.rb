@@ -54,6 +54,13 @@ RSpec.describe(Jekyll::Archive::ArchiveLink) do
     expect(archived_location).to eq(nil)
   end
 
+  it 'excludes URLs in exclude list' do
+    archiver = Jekyll::Archive::ArchiveLink.new(DOC)
+    expect(archiver.on_exclude_list('youtube.com')).to eq(true)
+    expect(archiver.on_exclude_list('http://www.youtube.com/whatever?3434#123')).to eq(true)
+    expect(archiver.on_exclude_list('some-blog.com/youtube')).to eq(false)
+  end
+
   # TODO: expect something (for now I'm just manually inspecting the output)
   it 'all just works' do
     archiver = Jekyll::Archive::ArchiveLink.new(DOC)

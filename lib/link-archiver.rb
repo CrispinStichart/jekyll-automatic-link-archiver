@@ -16,7 +16,7 @@ module Jekyll::Archive
       @archive_url = @config[:archive_url]
       @archive_dir = @config[:archive_dir]
       @inline_link = @config[:inline_link]
-      @exclude_list = @config[:exclude]
+      @exclude_list = @config[:exclude].map { |s| Regexp.new(s) }
     end
 
     def archive
@@ -25,11 +25,20 @@ module Jekyll::Archive
       html.css('.post a').each do |node|
         href = node['href']
         next unless offsite_link?(href)
+        next if on_exclude_list(href)
 
         archived_location = archive_url_or_get_from_cache(href)
         insert_archive_link(node, archived_location, html) if @inline_link
       end
       @doc.output = html.to_s
+    end
+
+    def on_exclude_list(url)
+      @exclude_list.each do |regex|
+        return true if url.match(regex)
+      end
+
+      false
     end
 
     def archive_url_or_get_from_cache(url)
